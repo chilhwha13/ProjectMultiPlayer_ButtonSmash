@@ -45,7 +45,6 @@ public class GameManager : NetworkBehaviour
         {
             if (timeRemaining.Value > 0)
             {
-                // ใช้ Mathf.CeilToInt เพื่อปัดเศษทศนิยมขึ้นให้ดูเป็นวินาทีสวยๆ
                 timerText.text = "Time: " + Mathf.CeilToInt(timeRemaining.Value).ToString();
             }
             else
