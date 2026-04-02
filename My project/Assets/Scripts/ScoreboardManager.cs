@@ -1,32 +1,35 @@
 ﻿using UnityEngine;
 using TMPro;
+using System.Collections.Generic;
 
 public class ScoreboardManager : MonoBehaviour
 {
-
     public static ScoreboardManager Instance;
 
     public TextMeshProUGUI scoreTextDisplay;
 
+    private List<PlayerScore> players = new List<PlayerScore>();
+
     private void Awake()
     {
-        if (Instance == null) Instance = this;
+        Instance = this;
+    }
+
+    public void RegisterPlayer(PlayerScore player)
+    {
+        players.Add(player);
+        RefreshScoreboard();
     }
 
     public void RefreshScoreboard()
     {
-        PlayerScore[] allPlayers = FindObjectsByType<PlayerScore>(FindObjectsSortMode.None);
-        string boardText = "--- Current Scores ---\n";
+        string board = "--- Current Scores ---\n";
 
-        foreach (PlayerScore player in allPlayers)
+        foreach (var player in players)
         {
-            boardText += $"Player {player.OwnerClientId} : {player.currentScore.Value} Pts\n";
+            board += $"Player {player.OwnerClientId} : {player.currentScore.Value} Pts\n";
         }
 
-        // 4. เอาข้อความไปแสดงบนจอ
-        if (scoreTextDisplay != null)
-        {
-            scoreTextDisplay.text = boardText;
-        }
+        scoreTextDisplay.text = board;
     }
 }

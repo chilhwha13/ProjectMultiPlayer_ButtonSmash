@@ -4,36 +4,33 @@ using UnityEngine;
 public class PlayerScore : NetworkBehaviour
 {
     public NetworkVariable<int> currentScore = new NetworkVariable<int>(
-        0, // ค่าเริ่มต้น
-        NetworkVariableReadPermission.Everyone, // ทุกคนอ่านค่าได้ (เอาไปโชว์ UI)
-        NetworkVariableWritePermission.Server   // Server เท่านั้นที่แก้ไขค่าได้ (ป้องกัน Client แฮ็กคะแนน)
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
     );
+
+    private float lastClickTime;
+    private float clickCooldown = 0.1f;
 
     public override void OnNetworkSpawn()
     {
-        if (ScoreboardManager.Instance != null)
+        ScoreboardManager.Instance?.RegisterPlayer(this);
+
+        currentScore.OnValueChanged += (oldValue, newValue) =>
         {
-            ScoreboardManager.Instance.RefreshScoreboard();
-        }
-        currentScore.OnValueChanged += (int previousValue, int newValue) =>
-        {
-            if (ScoreboardManager.Instance != null)
-            {
-                ScoreboardManager.Instance.RefreshScoreboard();
-            }
+            ScoreboardManager.Instance?.RefreshScoreboard();
         };
     }
 
-    
     public void OnClickSmashButton()
     {
         if (!IsOwner) return;
 
-        if (GameManager.Instance != null && !GameManager.Instance.isGameActive.Value)
-        {
-            Debug.Log("Time is up! Cannot smash anymore.");
-            return;
-        }
+        if (!GameManager.Instance.isGameActive.Value) return;
+
+        if (Time.time - lastClickTime < clickCooldown) return;
+
+        lastClickTime = Time.time;
 
         SubmitScoreServerRpc();
     }
@@ -41,6 +38,6 @@ public class PlayerScore : NetworkBehaviour
     [ServerRpc]
     private void SubmitScoreServerRpc()
     {
-        currentScore.Value += 1;
+        currentScore.Value++;
     }
 }
