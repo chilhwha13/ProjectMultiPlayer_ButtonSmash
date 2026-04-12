@@ -8,6 +8,9 @@ public class ScoreboardManager : MonoBehaviour
 
     public TextMeshProUGUI scoreTextDisplay;
 
+    [Header("Waiting Room Reference")]
+    public TextMeshProUGUI waitingRoomPlayerListDisplay; // ช่อง Text สำหรับแสดงชื่อคนในห้องรอ
+
     private List<PlayerScore> players = new List<PlayerScore>();
 
     private void Awake()
@@ -17,19 +20,29 @@ public class ScoreboardManager : MonoBehaviour
 
     public void RegisterPlayer(PlayerScore player)
     {
-        players.Add(player);
+        if (!players.Contains(player))
+        {
+            players.Add(player);
+        }
         RefreshScoreboard();
     }
 
     public void RefreshScoreboard()
     {
         string board = "--- Current Scores ---\n";
+        string waitingList = "Players in Lobby:\n";
 
         foreach (var player in players)
         {
-            board += $"Player {player.OwnerClientId} : {player.currentScore.Value} Pts\n";
+            string pName = string.IsNullOrEmpty(player.playerName.Value.ToString()) ? $"Player {player.OwnerClientId}" : player.playerName.Value.ToString();
+
+            board += $"{pName} : {player.currentScore.Value} Pts\n";
+            waitingList += $"- {pName}\n";
         }
 
-        scoreTextDisplay.text = board;
+        if (scoreTextDisplay != null) scoreTextDisplay.text = board;
+
+        // อัปเดตรายชื่อในหน้า Waiting Room ด้วย
+        if (waitingRoomPlayerListDisplay != null) waitingRoomPlayerListDisplay.text = waitingList;
     }
 }

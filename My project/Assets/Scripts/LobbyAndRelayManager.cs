@@ -13,27 +13,89 @@ using UnityEngine;
 
 public class LobbyAndRelayManager : MonoBehaviour
 {
-    [Header("UI References")]
-    public TMP_InputField joinInput; // ช่องกรอกรหัสสำหรับฝั่งคนจอย
+    public static LobbyAndRelayManager Instance;
+
+    // ตัวแปร Static เก็บชื่อไว้ชั่วคราวก่อนเข้าห้อง
+    public static string PlayerName = "Player";
+
+    [Header("UI Panels")]
+    public GameObject nameInputPanel;     // หน้า 1: ตั้งชื่อ
+    public GameObject lobbyMenuPanel;     // หน้า 2: สร้าง/เข้าร่วม
+    public GameObject waitingRoomPanel;   // หน้า 3: ห้องรอ
+    public GameObject gameplayUIPanel;    // หน้า 4: UI ตอนเล่นเกม (ปุ่ม Smash, Timer)
+
+    [Header("Name Input UI")]
+    public TMP_InputField nameInput;
+
+    [Header("Lobby Menu UI")]
+    public TMP_InputField joinInput;
+
+    [Header("Waiting Room UI")]
+    public TextMeshProUGUI lobbyCodeText; // โชว์โค้ดให้ก๊อปปี้
+    public GameObject hostStartGameButton;// ปุ่มเริ่มเกม (โชว์เฉพาะ Host)
 
     private Lobby currentLobby;
-    private const int MaxPlayers = 4; // จำนวนผู้เล่นสูงสุดในห้อง
+    private const int MaxPlayers = 4;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     async void Start()
     {
+        // เริ่มต้นด้วยการเปิดหน้าต่างตั้งชื่อ
+        SwitchToPanel(nameInputPanel);
+        gameplayUIPanel.SetActive(false);
+
         await InitializeAndSignIn();
     }
+
+    // ================= UI FLOW =================
+
+    public void OnConfirmNameClicked()
+    {
+        if (!string.IsNullOrEmpty(nameInput.text))
+        {
+            PlayerName = nameInput.text;
+            SwitchToPanel(lobbyMenuPanel); // ไปหน้า สร้าง/จอย
+        }
+    }
+
+    private void SwitchToPanel(GameObject activePanel)
+    {
+        nameInputPanel.SetActive(false);
+        lobbyMenuPanel.SetActive(false);
+        waitingRoomPanel.SetActive(false);
+
+        if (activePanel != null) activePanel.SetActive(true);
+    }
+
+    public void CopyLobbyCode()
+    {
+        if (currentLobby != null)
+        {
+            GUIUtility.systemCopyBuffer = currentLobby.LobbyCode;
+            Debug.Log("คัดลอกโค้ดแล้ว: " + currentLobby.LobbyCode);
+        }
+    }
+
+    public void HostStartGame()
+    {
+        // เมื่อ Host กดปุ่มเริ่มเกม
+        if (NetworkManager.Singleton.IsServer)
+        {
+            GameManager.Instance.HostStartGameFromLobby();
+        }
+    }
+
+    // ================= NETWORKING =================
 
     private async Task InitializeAndSignIn()
     {
         await UnityServices.InitializeAsync();
-
         if (!AuthenticationService.Instance.IsSignedIn)
         {
-            AuthenticationService.Instance.SignedIn += () =>
-            {
-                Debug.Log("Signed in as: " + AuthenticationService.Instance.PlayerId);
-            };
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
         }
     }
@@ -42,11 +104,9 @@ public class LobbyAndRelayManager : MonoBehaviour
     {
         try
         {
-            Debug.Log("กำลังสร้างห้อง...");
-
             Allocation allocation = await RelayService.Instance.CreateAllocationAsync(MaxPlayers - 1);
             string relayJoinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-            
+
             CreateLobbyOptions lobbyOptions = new CreateLobbyOptions
             {
                 IsPrivate = false,
@@ -56,9 +116,6 @@ public class LobbyAndRelayManager : MonoBehaviour
                 }
             };
             currentLobby = await LobbyService.Instance.CreateLobbyAsync("My Button Smash Lobby", MaxPlayers, lobbyOptions);
-
-            Debug.Log("Created Lobby! Name: " + currentLobby.Name);
-            Debug.Log("===== LOBBY CODE (เอาไปให้เพื่อนกรอก): " + currentLobby.LobbyCode + " =====");
 
             KeepLobbyAlive(currentLobby.Id);
 
@@ -71,6 +128,11 @@ public class LobbyAndRelayManager : MonoBehaviour
             );
 
             NetworkManager.Singleton.StartHost();
+
+            // เปลี่ยนหน้าจอไปที่ Waiting Room และตั้งค่า UI สำหรับ Host
+            lobbyCodeText.text = "Lobby Code: " + currentLobby.LobbyCode;
+            hostStartGameButton.SetActive(true);
+            SwitchToPanel(waitingRoomPanel);
         }
         catch (LobbyServiceException e)
         {
@@ -80,15 +142,9 @@ public class LobbyAndRelayManager : MonoBehaviour
 
     public void OnClickJoinButton()
     {
-
         if (joinInput != null && !string.IsNullOrEmpty(joinInput.text))
         {
-            Debug.Log("กำลังจอยห้องด้วยรหัส: " + joinInput.text);
             JoinLobbyWithCode(joinInput.text);
-        }
-        else
-        {
-            Debug.LogWarning("กรุณากรอกรหัสห้องก่อน!");
         }
     }
 
@@ -97,8 +153,6 @@ public class LobbyAndRelayManager : MonoBehaviour
         try
         {
             currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode);
-            Debug.Log("Joined Lobby: " + currentLobby.Name);
-
             string relayJoinCode = currentLobby.Data["RelayCode"].Value;
             JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(relayJoinCode);
 
@@ -112,7 +166,11 @@ public class LobbyAndRelayManager : MonoBehaviour
             );
 
             NetworkManager.Singleton.StartClient();
-            Debug.Log("เชื่อมต่อสำเร็จ กำลังเข้าสู่เกม...");
+
+            // เปลี่ยนหน้าจอไปที่ Waiting Room (Client ไม่เห็นปุ่มเริ่มเกม)
+            lobbyCodeText.text = "Lobby Code: " + currentLobby.LobbyCode;
+            hostStartGameButton.SetActive(false);
+            SwitchToPanel(waitingRoomPanel);
         }
         catch (LobbyServiceException e)
         {
@@ -124,11 +182,10 @@ public class LobbyAndRelayManager : MonoBehaviour
     {
         while (currentLobby != null)
         {
-            await Task.Delay(15000); // รอ 15 วินาที
+            await Task.Delay(15000);
             if (currentLobby != null)
             {
                 await LobbyService.Instance.SendHeartbeatPingAsync(lobbyId);
-               
             }
         }
     }

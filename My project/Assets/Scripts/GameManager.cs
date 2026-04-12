@@ -33,11 +33,17 @@ public class GameManager : NetworkBehaviour
     {
         timeRemaining.OnValueChanged += OnTimeChanged;
 
-        if (IsServer)
+        // ให้ทุกเครื่องดักจับว่า ถ้า isGameActive เป็น true ให้เปลี่ยนหน้าจอเข้าสู่โหมดเล่นเกม
+        isGameActive.OnValueChanged += (oldValue, newValue) =>
         {
-            StartGame();
-        }
+            if (newValue == true)
+            {
+                LobbyAndRelayManager.Instance.waitingRoomPanel.SetActive(false);
+                LobbyAndRelayManager.Instance.gameplayUIPanel.SetActive(true);
+            }
+        };
 
+        // *เอา StartGame() ตรงนี้ออก เพื่อไม่ให้เกมเริ่มอัตโนมัติ*
         UpdateTimerUI(timeRemaining.Value);
     }
 
@@ -53,7 +59,6 @@ public class GameManager : NetworkBehaviour
         {
             timeRemaining.Value = 0;
             isGameActive.Value = false;
-
             DetermineWinner();
         }
     }
@@ -66,15 +71,16 @@ public class GameManager : NetworkBehaviour
     private void UpdateTimerUI(float time)
     {
         if (timerText == null) return;
-
         if (time > 0)
             timerText.text = "Time: " + Mathf.CeilToInt(time);
         else
             timerText.text = "TIME'S UP!";
     }
 
-    private void StartGame()
+    // ฟังก์ชันนี้จะถูกเรียกโดยปุ่มของ Host ใน Waiting Room
+    public void HostStartGameFromLobby()
     {
+        if (!IsServer) return;
         timeRemaining.Value = gameDuration;
         isGameActive.Value = true;
     }
@@ -82,7 +88,6 @@ public class GameManager : NetworkBehaviour
     private void DetermineWinner()
     {
         PlayerScore[] players = FindObjectsByType<PlayerScore>(FindObjectsSortMode.None);
-
         PlayerScore winner = null;
         int highestScore = -1;
 
@@ -97,29 +102,25 @@ public class GameManager : NetworkBehaviour
 
         if (winner != null)
         {
-            ShowWinnerClientRpc(winner.OwnerClientId, highestScore);
+            // ส่งชื่อของคนชนะไปโชว์
+            ShowWinnerClientRpc(winner.playerName.Value.ToString(), highestScore);
         }
     }
 
     [ClientRpc]
-    private void ShowWinnerClientRpc(ulong winnerId, int score)
+    private void ShowWinnerClientRpc(string winnerName, int score)
     {
-        SmashUIManager.Instance?.ShowWinner(winnerId, score);
+        SmashUIManager.Instance?.ShowWinner(winnerName, score);
     }
-
-    // ================= REMATCH (HOST ONLY) =================
 
     public void HostStartRematch()
     {
         if (!IsServer) return;
 
-        Debug.Log("HOST STARTED REMATCH");
-
         timeRemaining.Value = gameDuration;
         isGameActive.Value = true;
 
         PlayerScore[] players = FindObjectsByType<PlayerScore>(FindObjectsSortMode.None);
-
         foreach (var player in players)
         {
             player.currentScore.Value = 0;
