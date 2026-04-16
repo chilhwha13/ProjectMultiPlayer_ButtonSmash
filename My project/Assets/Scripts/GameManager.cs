@@ -6,23 +6,21 @@ public class GameManager : NetworkBehaviour
 {
     public static GameManager Instance;
 
-    [Header("UI")]
-    public TextMeshProUGUI timerText;
+    [Header("UI References")]
+    public TextMeshProUGUI timerText;         // ตัวจับเวลาตอนเล่น
+    public TextMeshProUGUI countdownText;     // ตัวหนังสือใหญ่ๆ กลางจอ ไว้โชว์ 3..2..1..GO! (สร้างเพิ่มใน Canvas)
+    public GameObject smashButtonObj;         // อ้างอิงปุ่มกดรัวๆ (เพื่อล็อคไม่ให้กดตอนนับถอยหลัง)
 
     [Header("Game Settings")]
     public float gameDuration = 30f;
+    public float countdownDuration = 3f;      // เวลานับถอยหลังก่อนเริ่ม
 
-    public NetworkVariable<float> timeRemaining = new NetworkVariable<float>(
-        30f,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+    // สถานะเกม
+    public NetworkVariable<bool> isCountingDown = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<float> currentCountdown = new NetworkVariable<float>(3f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    public NetworkVariable<bool> isGameActive = new NetworkVariable<bool>(
-        false,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+    public NetworkVariable<bool> isGameActive = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<float> timeRemaining = new NetworkVariable<float>(30f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     private void Awake()
     {
@@ -32,35 +30,81 @@ public class GameManager : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         timeRemaining.OnValueChanged += OnTimeChanged;
+        currentCountdown.OnValueChanged += OnCountdownChanged;
 
-        // ให้ทุกเครื่องดักจับว่า ถ้า isGameActive เป็น true ให้เปลี่ยนหน้าจอเข้าสู่โหมดเล่นเกม
-        isGameActive.OnValueChanged += (oldValue, newValue) =>
+        // เมื่อเริ่มนับถอยหลัง ให้ย้ายไปหน้าเล่นเกม แต่โชว์ตัวเลขใหญ่ๆ และล็อคปุ่มกด
+        isCountingDown.OnValueChanged += (oldValue, newValue) =>
         {
-            if (newValue == true)
+            if (newValue)
             {
                 LobbyAndRelayManager.Instance.waitingRoomPanel.SetActive(false);
                 LobbyAndRelayManager.Instance.gameplayUIPanel.SetActive(true);
+
+                if (smashButtonObj != null) smashButtonObj.SetActive(false); // ซ่อน/ล็อคปุ่มกด
+                if (countdownText != null) countdownText.gameObject.SetActive(true); // โชว์ 3 2 1
             }
         };
 
-        // *เอา StartGame() ตรงนี้ออก เพื่อไม่ให้เกมเริ่มอัตโนมัติ*
+        // เมื่อเกมเริ่มจริงๆ (นับถอยหลังจบ) ให้ปลดล็อคปุ่ม
+        isGameActive.OnValueChanged += (oldValue, newValue) =>
+        {
+            if (newValue)
+            {
+                if (countdownText != null) countdownText.gameObject.SetActive(false); // ซ่อนเลข 3 2 1
+                if (smashButtonObj != null) smashButtonObj.SetActive(true); // โชว์ปุ่มให้รัวนิ้วได้
+            }
+        };
+
         UpdateTimerUI(timeRemaining.Value);
     }
 
     private void Update()
     {
-        if (!IsServer || !isGameActive.Value) return;
+        if (!IsServer) return;
 
-        if (timeRemaining.Value > 0)
+        // 1. ถ้านับถอยหลังอยู่
+        if (isCountingDown.Value)
         {
-            timeRemaining.Value -= Time.deltaTime;
+            if (currentCountdown.Value > 0)
+            {
+                currentCountdown.Value -= Time.deltaTime;
+            }
+            else
+            {
+                // นับถอยหลังจบ -> เริ่มเกมจริงๆ
+                isCountingDown.Value = false;
+                timeRemaining.Value = gameDuration;
+                isGameActive.Value = true;
+            }
+            return;
         }
+
+        // 2. ถ้าเกมกำลังเล่นอยู่
+        if (isGameActive.Value)
+        {
+            if (timeRemaining.Value > 0)
+            {
+                timeRemaining.Value -= Time.deltaTime;
+            }
+            else
+            {
+                timeRemaining.Value = 0;
+                isGameActive.Value = false;
+                DetermineWinner();
+            }
+        }
+    }
+
+    // ฟังก์ชันอัปเดต UI หน้าจอ
+    private void OnCountdownChanged(float oldValue, float newValue)
+    {
+        if (countdownText == null) return;
+
+        int ceilTime = Mathf.CeilToInt(newValue);
+        if (ceilTime > 0)
+            countdownText.text = ceilTime.ToString();
         else
-        {
-            timeRemaining.Value = 0;
-            isGameActive.Value = false;
-            DetermineWinner();
-        }
+            countdownText.text = "GO!";
     }
 
     private void OnTimeChanged(float oldValue, float newValue)
@@ -77,14 +121,33 @@ public class GameManager : NetworkBehaviour
             timerText.text = "TIME'S UP!";
     }
 
-    // ฟังก์ชันนี้จะถูกเรียกโดยปุ่มของ Host ใน Waiting Room
+    // ฟังก์ชันกดเริ่มเกมจาก Host (เปลี่ยนจากเริ่มเลย เป็นเริ่มนับถอยหลัง)
     public void HostStartGameFromLobby()
     {
         if (!IsServer) return;
-        timeRemaining.Value = gameDuration;
-        isGameActive.Value = true;
+        currentCountdown.Value = countdownDuration;
+        isCountingDown.Value = true;
     }
 
+    public void HostStartRematch()
+    {
+        if (!IsServer) return;
+
+        // Reset คะแนนทุกคน
+        PlayerScore[] players = FindObjectsByType<PlayerScore>(FindObjectsSortMode.None);
+        foreach (var player in players)
+        {
+            player.currentScore.Value = 0;
+        }
+
+        HideWinnerClientRpc();
+
+        // เข้าสู่โหมดนับถอยหลังใหม่
+        currentCountdown.Value = countdownDuration;
+        isCountingDown.Value = true;
+    }
+
+    // (ส่วนหาผู้ชนะและ ClientRpc คงไว้แบบเดิมครับ)
     private void DetermineWinner()
     {
         PlayerScore[] players = FindObjectsByType<PlayerScore>(FindObjectsSortMode.None);
@@ -102,7 +165,6 @@ public class GameManager : NetworkBehaviour
 
         if (winner != null)
         {
-            // ส่งชื่อของคนชนะไปโชว์
             ShowWinnerClientRpc(winner.playerName.Value.ToString(), highestScore);
         }
     }
@@ -111,22 +173,6 @@ public class GameManager : NetworkBehaviour
     private void ShowWinnerClientRpc(string winnerName, int score)
     {
         SmashUIManager.Instance?.ShowWinner(winnerName, score);
-    }
-
-    public void HostStartRematch()
-    {
-        if (!IsServer) return;
-
-        timeRemaining.Value = gameDuration;
-        isGameActive.Value = true;
-
-        PlayerScore[] players = FindObjectsByType<PlayerScore>(FindObjectsSortMode.None);
-        foreach (var player in players)
-        {
-            player.currentScore.Value = 0;
-        }
-
-        HideWinnerClientRpc();
     }
 
     [ClientRpc]

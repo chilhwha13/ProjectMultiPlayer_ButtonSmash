@@ -6,10 +6,12 @@ public class ScoreboardManager : MonoBehaviour
 {
     public static ScoreboardManager Instance;
 
+    [Header("In-Game Scoreboard")]
     public TextMeshProUGUI scoreTextDisplay;
 
-    [Header("Waiting Room Reference")]
-    public TextMeshProUGUI waitingRoomPlayerListDisplay; // ช่อง Text สำหรับแสดงชื่อคนในห้องรอ
+    [Header("Waiting Room Scroll View")]
+    public GameObject playerSlotPrefab;    // ลาก Prefab PlayerNameSlot มาใส่ช่องนี้
+    public Transform waitingRoomContent;   // ลากตัว Content ใน Scroll View มาใส่ช่องนี้
 
     private List<PlayerScore> players = new List<PlayerScore>();
 
@@ -29,20 +31,43 @@ public class ScoreboardManager : MonoBehaviour
 
     public void RefreshScoreboard()
     {
+        // 1. อัปเดตกระดานคะแนนตอนเล่นเกม (แบบเดิม)
         string board = "--- Current Scores ---\n";
-        string waitingList = "Players in Lobby:\n";
+        foreach (var player in players)
+        {
+            string pName = string.IsNullOrEmpty(player.playerName.Value.ToString()) ? $"Player {player.OwnerClientId}" : player.playerName.Value.ToString();
+            board += $"{pName} : {player.currentScore.Value} Pts\n";
+        }
+        if (scoreTextDisplay != null) scoreTextDisplay.text = board;
 
+        // 2. อัปเดต Scroll View ในหน้า Waiting Room
+        UpdateWaitingRoomScrollView();
+    }
+
+    private void UpdateWaitingRoomScrollView()
+    {
+        if (playerSlotPrefab == null || waitingRoomContent == null) return;
+
+        // ลบรายชื่อเก่าทิ้งให้หมดก่อน
+        foreach (Transform child in waitingRoomContent)
+        {
+            Destroy(child.gameObject);
+        }
+
+        // เสกรายชื่อใหม่เข้าไปเรียงกัน
         foreach (var player in players)
         {
             string pName = string.IsNullOrEmpty(player.playerName.Value.ToString()) ? $"Player {player.OwnerClientId}" : player.playerName.Value.ToString();
 
-            board += $"{pName} : {player.currentScore.Value} Pts\n";
-            waitingList += $"- {pName}\n";
+            // สร้าง Prefab ใส่ลงใน Content
+            GameObject newSlot = Instantiate(playerSlotPrefab, waitingRoomContent);
+
+            // ดึง TextMeshPro มาแก้ข้อความ
+            TextMeshProUGUI slotText = newSlot.GetComponent<TextMeshProUGUI>();
+            if (slotText != null)
+            {
+                slotText.text = pName;
+            }
         }
-
-        if (scoreTextDisplay != null) scoreTextDisplay.text = board;
-
-        // อัปเดตรายชื่อในหน้า Waiting Room ด้วย
-        if (waitingRoomPlayerListDisplay != null) waitingRoomPlayerListDisplay.text = waitingList;
     }
 }
