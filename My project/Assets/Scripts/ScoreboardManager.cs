@@ -1,23 +1,38 @@
 ﻿using UnityEngine;
 using TMPro;
 using System.Collections.Generic;
+using Unity.Netcode;
 
 public class ScoreboardManager : MonoBehaviour
 {
     public static ScoreboardManager Instance;
 
-    [Header("In-Game Scoreboard")]
+    [Header("In-Game Scoreboard (For GameScene)")]
     public TextMeshProUGUI scoreTextDisplay;
 
-    [Header("Waiting Room Scroll View")]
-    public GameObject playerSlotPrefab;    // ลาก Prefab PlayerNameSlot มาใส่ช่องนี้
-    public Transform waitingRoomContent;   // ลากตัว Content ใน Scroll View มาใส่ช่องนี้
+    [Header("Waiting Room UI (For LobbyScene)")]
+    public GameObject playerSlotPrefab;
+    public Transform waitingRoomContent;
 
     private List<PlayerScore> players = new List<PlayerScore>();
 
     private void Awake()
     {
         Instance = this;
+    }
+
+    private void Start()
+    {
+        // เมื่อโหลดเปลี่ยน Scene ไปมา ให้ดึงรายชื่อผู้เล่นกลับมาใส่ลิสต์ใหม่ให้ครบ
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsConnectedClient)
+        {
+            players.Clear();
+            PlayerScore[] existingPlayers = FindObjectsByType<PlayerScore>(FindObjectsSortMode.None);
+            foreach (var p in existingPlayers)
+            {
+                RegisterPlayer(p);
+            }
+        }
     }
 
     public void RegisterPlayer(PlayerScore player)
@@ -29,18 +44,30 @@ public class ScoreboardManager : MonoBehaviour
         RefreshScoreboard();
     }
 
+    public void UnregisterPlayer(PlayerScore player)
+    {
+        if (players.Contains(player))
+        {
+            players.Remove(player);
+        }
+        RefreshScoreboard();
+    }
+
     public void RefreshScoreboard()
     {
-        // 1. อัปเดตกระดานคะแนนตอนเล่นเกม (แบบเดิม)
-        string board = "--- Current Scores ---\n";
-        foreach (var player in players)
+        // 1. อัปเดตกระดานคะแนน (GameScene)
+        if (scoreTextDisplay != null)
         {
-            string pName = string.IsNullOrEmpty(player.playerName.Value.ToString()) ? $"Player {player.OwnerClientId}" : player.playerName.Value.ToString();
-            board += $"{pName} : {player.currentScore.Value} Pts\n";
+            string board = "--- Current Scores ---\n";
+            foreach (var player in players)
+            {
+                string pName = string.IsNullOrEmpty(player.playerName.Value.ToString()) ? $"Player {player.OwnerClientId}" : player.playerName.Value.ToString();
+                board += $"{pName} : {player.currentScore.Value} Pts\n";
+            }
+            scoreTextDisplay.text = board;
         }
-        if (scoreTextDisplay != null) scoreTextDisplay.text = board;
 
-        // 2. อัปเดต Scroll View ในหน้า Waiting Room
+        // 2. อัปเดตรายชื่อใน ScrollView (LobbyScene)
         UpdateWaitingRoomScrollView();
     }
 
@@ -48,21 +75,15 @@ public class ScoreboardManager : MonoBehaviour
     {
         if (playerSlotPrefab == null || waitingRoomContent == null) return;
 
-        // ลบรายชื่อเก่าทิ้งให้หมดก่อน
         foreach (Transform child in waitingRoomContent)
         {
             Destroy(child.gameObject);
         }
 
-        // เสกรายชื่อใหม่เข้าไปเรียงกัน
         foreach (var player in players)
         {
             string pName = string.IsNullOrEmpty(player.playerName.Value.ToString()) ? $"Player {player.OwnerClientId}" : player.playerName.Value.ToString();
-
-            // สร้าง Prefab ใส่ลงใน Content
             GameObject newSlot = Instantiate(playerSlotPrefab, waitingRoomContent);
-
-            // ดึง TextMeshPro มาแก้ข้อความ
             TextMeshProUGUI slotText = newSlot.GetComponent<TextMeshProUGUI>();
             if (slotText != null)
             {

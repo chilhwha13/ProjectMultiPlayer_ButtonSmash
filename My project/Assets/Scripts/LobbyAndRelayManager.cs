@@ -10,19 +10,22 @@ using Unity.Services.Lobbies.Models;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class LobbyAndRelayManager : MonoBehaviour
 {
     public static LobbyAndRelayManager Instance;
-
-    // ตัวแปร Static เก็บชื่อไว้ชั่วคราวก่อนเข้าห้อง
     public static string PlayerName = "Player";
 
+    [Header("Level Settings")]
+    [Tooltip("กดปุ่ม + เพื่อเพิ่มรายชื่อ Scene ด่านต่างๆ ตามลำดับ")]
+    public List<string> levelScenes = new List<string>();
+    private int currentLevelIndex = 0; // ตัวจำว่าตอนนี้อยู่ด่านที่เท่าไหร่
+
     [Header("UI Panels")]
-    public GameObject nameInputPanel;     // หน้า 1: ตั้งชื่อ
-    public GameObject lobbyMenuPanel;     // หน้า 2: สร้าง/เข้าร่วม
-    public GameObject waitingRoomPanel;   // หน้า 3: ห้องรอ
-    public GameObject gameplayUIPanel;    // หน้า 4: UI ตอนเล่นเกม (ปุ่ม Smash, Timer)
+    public GameObject nameInputPanel;
+    public GameObject lobbyMenuPanel;
+    public GameObject waitingRoomPanel;
 
     [Header("Name Input UI")]
     public TMP_InputField nameInput;
@@ -31,42 +34,90 @@ public class LobbyAndRelayManager : MonoBehaviour
     public TMP_InputField joinInput;
 
     [Header("Waiting Room UI")]
-    public TextMeshProUGUI lobbyCodeText; // โชว์โค้ดให้ก๊อปปี้
-    public GameObject hostStartGameButton;// ปุ่มเริ่มเกม (โชว์เฉพาะ Host)
+    public TextMeshProUGUI lobbyCodeText;
+    public GameObject hostStartGameButton;
 
     private Lobby currentLobby;
     private const int MaxPlayers = 4;
 
     private void Awake()
     {
-        Instance = this;
+        // ป้องกันไม่ให้ Manager ตัวนี้ถูกทำลายตอนเปลี่ยนด่าน (เพื่อให้มันจำ Level Index ได้)
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject); // <--- คำสั่งสำคัญที่ทำให้รอดจากการเปลี่ยน Scene
+        }
+        else
+        {
+            Destroy(gameObject); // ถ้ามีซ้ำให้ทำลายทิ้ง
+        }
     }
 
     async void Start()
     {
-        // เริ่มต้นด้วยการเปิดหน้าต่างตั้งชื่อ
         SwitchToPanel(nameInputPanel);
-        gameplayUIPanel.SetActive(false);
-
         await InitializeAndSignIn();
     }
 
-    // ================= UI FLOW =================
+    // ================== ระบบสลับด่าน (Level Management) ==================
+
+    public void HostStartGame()
+    {
+        if (NetworkManager.Singleton.IsServer)
+        {
+            if (levelScenes.Count > 0)
+            {
+                currentLevelIndex = 0; // เริ่มต้นที่ด่านแรก (Index 0)
+                NetworkManager.Singleton.SceneManager.LoadScene(levelScenes[currentLevelIndex], LoadSceneMode.Single);
+            }
+            else
+            {
+                Debug.LogError("คุณยังไม่ได้ใส่ชื่อด่านใน List Level Scenes ใน Inspector!");
+            }
+        }
+    }
+
+    // สร้างฟังก์ชันใหม่สำหรับให้ Host กดเพื่อไปด่านต่อไป
+    public void HostLoadNextLevel()
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        currentLevelIndex++; // ขยับไปด่านถัดไป
+
+        if (currentLevelIndex < levelScenes.Count)
+        {
+            // โหลดด่านถัดไป
+            NetworkManager.Singleton.SceneManager.LoadScene(levelScenes[currentLevelIndex], LoadSceneMode.Single);
+        }
+        else
+        {
+            Debug.Log("จบทุกด่านแล้ว! พากลับหน้า Lobby");
+            // วนกลับมาด่านแรก หรือหน้า Lobby (อย่าลืมใส่ชื่อซีน Lobby ของคุณตรงนี้)
+            NetworkManager.Singleton.SceneManager.LoadScene("LobbyScene", LoadSceneMode.Single);
+
+            // รีเซ็ต UI ให้กลับมาหน้าแรก
+            SwitchToPanel(nameInputPanel);
+        }
+    }
+
+    // ================== ส่วนจัดการ UI และ Relay (คงเดิม) ==================
+    // ... โค้ดส่วนที่เหลือ (OnConfirmNameClicked, CreateLobby, JoinLobby ฯลฯ) วางต่อตรงนี้ได้เลยครับ ...
 
     public void OnConfirmNameClicked()
     {
         if (!string.IsNullOrEmpty(nameInput.text))
         {
             PlayerName = nameInput.text;
-            SwitchToPanel(lobbyMenuPanel); // ไปหน้า สร้าง/จอย
+            SwitchToPanel(lobbyMenuPanel);
         }
     }
 
     private void SwitchToPanel(GameObject activePanel)
     {
-        nameInputPanel.SetActive(false);
-        lobbyMenuPanel.SetActive(false);
-        waitingRoomPanel.SetActive(false);
+        if (nameInputPanel) nameInputPanel.SetActive(false);
+        if (lobbyMenuPanel) lobbyMenuPanel.SetActive(false);
+        if (waitingRoomPanel) waitingRoomPanel.SetActive(false);
 
         if (activePanel != null) activePanel.SetActive(true);
     }
@@ -76,20 +127,8 @@ public class LobbyAndRelayManager : MonoBehaviour
         if (currentLobby != null)
         {
             GUIUtility.systemCopyBuffer = currentLobby.LobbyCode;
-            Debug.Log("คัดลอกโค้ดแล้ว: " + currentLobby.LobbyCode);
         }
     }
-
-    public void HostStartGame()
-    {
-        // เมื่อ Host กดปุ่มเริ่มเกม
-        if (NetworkManager.Singleton.IsServer)
-        {
-            GameManager.Instance.HostStartGameFromLobby();
-        }
-    }
-
-    // ================= NETWORKING =================
 
     private async Task InitializeAndSignIn()
     {
@@ -110,34 +149,22 @@ public class LobbyAndRelayManager : MonoBehaviour
             CreateLobbyOptions lobbyOptions = new CreateLobbyOptions
             {
                 IsPrivate = false,
-                Data = new Dictionary<string, DataObject>
-                {
-                    { "RelayCode", new DataObject(DataObject.VisibilityOptions.Public, relayJoinCode) }
-                }
+                Data = new Dictionary<string, DataObject> { { "RelayCode", new DataObject(DataObject.VisibilityOptions.Public, relayJoinCode) } }
             };
-            currentLobby = await LobbyService.Instance.CreateLobbyAsync("My Button Smash Lobby", MaxPlayers, lobbyOptions);
+            currentLobby = await LobbyService.Instance.CreateLobbyAsync("Smash Lobby", MaxPlayers, lobbyOptions);
 
             KeepLobbyAlive(currentLobby.Id);
 
             NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(
-                allocation.RelayServer.IpV4,
-                (ushort)allocation.RelayServer.Port,
-                allocation.AllocationIdBytes,
-                allocation.Key,
-                allocation.ConnectionData
-            );
+                allocation.RelayServer.IpV4, (ushort)allocation.RelayServer.Port, allocation.AllocationIdBytes, allocation.Key, allocation.ConnectionData);
 
             NetworkManager.Singleton.StartHost();
 
-            // เปลี่ยนหน้าจอไปที่ Waiting Room และตั้งค่า UI สำหรับ Host
-            lobbyCodeText.text = "Lobby Code: " + currentLobby.LobbyCode;
+            lobbyCodeText.text = currentLobby.LobbyCode;
             hostStartGameButton.SetActive(true);
             SwitchToPanel(waitingRoomPanel);
         }
-        catch (LobbyServiceException e)
-        {
-            Debug.LogError("Failed to create lobby: " + e.Message);
-        }
+        catch (LobbyServiceException e) { Debug.LogError(e); }
     }
 
     public void OnClickJoinButton()
@@ -157,25 +184,15 @@ public class LobbyAndRelayManager : MonoBehaviour
             JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(relayJoinCode);
 
             NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(
-                joinAllocation.RelayServer.IpV4,
-                (ushort)joinAllocation.RelayServer.Port,
-                joinAllocation.AllocationIdBytes,
-                joinAllocation.Key,
-                joinAllocation.ConnectionData,
-                joinAllocation.HostConnectionData
-            );
+                joinAllocation.RelayServer.IpV4, (ushort)joinAllocation.RelayServer.Port, joinAllocation.AllocationIdBytes, joinAllocation.Key, joinAllocation.ConnectionData, joinAllocation.HostConnectionData);
 
             NetworkManager.Singleton.StartClient();
 
-            // เปลี่ยนหน้าจอไปที่ Waiting Room (Client ไม่เห็นปุ่มเริ่มเกม)
-            lobbyCodeText.text = "Lobby Code: " + currentLobby.LobbyCode;
+            lobbyCodeText.text = currentLobby.LobbyCode;
             hostStartGameButton.SetActive(false);
             SwitchToPanel(waitingRoomPanel);
         }
-        catch (LobbyServiceException e)
-        {
-            Debug.LogError("Failed to join lobby: " + e.Message);
-        }
+        catch (LobbyServiceException e) { Debug.LogError(e); }
     }
 
     private async void KeepLobbyAlive(string lobbyId)
@@ -183,10 +200,7 @@ public class LobbyAndRelayManager : MonoBehaviour
         while (currentLobby != null)
         {
             await Task.Delay(15000);
-            if (currentLobby != null)
-            {
-                await LobbyService.Instance.SendHeartbeatPingAsync(lobbyId);
-            }
+            if (currentLobby != null) await LobbyService.Instance.SendHeartbeatPingAsync(lobbyId);
         }
     }
 }
