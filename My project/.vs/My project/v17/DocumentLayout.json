@@ -3,20 +3,20 @@
   "WorkspaceRootPath": "D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\assets\\scripts\\smashuimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\smashuimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\assets\\scripts\\lobbyandrelaymanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\lobbyandrelaymanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|d:\\unity\\unity-project\\projectmultiplayer_buttonsmash\\my project\\assets\\scripts\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\assets\\scripts\\scoreboardmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\scoreboardmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\assets\\scripts\\smashuimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\smashuimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\assets\\scripts\\lobbyandrelaymanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\lobbyandrelaymanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{32C3BDE6-E125-3128-82C1-25D0441455A3}|Assembly-CSharp.csproj|D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\assets\\scripts\\playerscore.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -30,46 +30,44 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 0,
               "Title": "GameManager.cs",
               "DocumentMoniker": "D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\Assets\\Scripts\\GameManager.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\GameManager.cs",
               "ToolTip": "D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\Assets\\Scripts\\GameManager.cs",
               "RelativeToolTip": "Assets\\Scripts\\GameManager.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAH8AAAAkAAAA",
+              "ViewState": "AQIAAGkAAAAAAAAAAADwv5kAAAABAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-03-28T12:48:37.199Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 1,
               "Title": "ScoreboardManager.cs",
               "DocumentMoniker": "D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\Assets\\Scripts\\ScoreboardManager.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\ScoreboardManager.cs",
               "ToolTip": "D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\Assets\\Scripts\\ScoreboardManager.cs",
               "RelativeToolTip": "Assets\\Scripts\\ScoreboardManager.cs",
-              "ViewState": "AQIAAC0AAAAAAAAAAAAAADkAAAAdAAAA",
+              "ViewState": "AQIAADQAAAAAAAAAAAAAAGQAAAABAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-26T17:47:23.845Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-26T17:47:23.845Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "SmashUIManager.cs",
               "DocumentMoniker": "D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\Assets\\Scripts\\SmashUIManager.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\SmashUIManager.cs",
               "ToolTip": "D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\Assets\\Scripts\\SmashUIManager.cs",
               "RelativeToolTip": "Assets\\Scripts\\SmashUIManager.cs",
-              "ViewState": "AQIAACYAAAAAAAAAAAAgwDwAAABCAAAA",
+              "ViewState": "AQIAABwAAAAAAAAAAAAzwKoAAAABAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-26T17:36:35.043Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-26T17:36:35.043Z"
             },
             {
               "$type": "Document",
@@ -81,12 +79,11 @@
               "RelativeToolTip": "Assets\\Scripts\\PlayerScore.cs",
               "ViewState": "AQIAAAoAAAAAAAAAAAAAABkAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-26T17:33:14.176Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-26T17:33:14.176Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "LobbyAndRelayManager.cs",
               "DocumentMoniker": "D:\\Unity\\Unity-Project\\ProjectMultiPlayer_ButtonSmash\\My project\\Assets\\Scripts\\LobbyAndRelayManager.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\LobbyAndRelayManager.cs",
@@ -94,8 +91,7 @@
               "RelativeToolTip": "Assets\\Scripts\\LobbyAndRelayManager.cs",
               "ViewState": "AQIAAJ0AAAAAAAAAAAAAAM0AAAABAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-26T12:52:30.904Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-26T12:52:30.904Z"
             }
           ]
         }
